@@ -29,8 +29,7 @@ class AutomatedAnalysis:
     def __init__(self, dataset_path: str):
         """Initialize the analysis with the dataset."""
         self.dataset_path = dataset_path
-        self.aiproxy_token = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjMwMDM3MjFAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.naj0MmujO6oTI-7xH3YWaJXfKFzXVJLwwQzwbMY6g8k"
-
+        self.aiproxy_token = os.getenv("AIPROXY_TOKEN")
         if not self.aiproxy_token:
             raise ValueError("AIPROXY_TOKEN is not set.")
 
