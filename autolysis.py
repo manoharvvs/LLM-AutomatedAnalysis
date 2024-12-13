@@ -9,29 +9,30 @@
 # ]
 # ///
 
-import os  # Helps with operating system interactions like file paths
-import sys  # Provides system-specific parameters and functions
-import logging  # For creating log messages and tracking script execution
-import pandas as pd  # Data manipulation and analysis library
-import seaborn as sns  # Statistical data visualization
-import matplotlib.pyplot as plt  # Plotting library
-import httpx  # HTTP client for making API requests
-import traceback  # Helps in printing detailed error information
-import json  # Allows working with JSON data
-from typing import List, Dict  # Helps with type hinting
-from shutil import move  # Used for moving files
+import os
+import sys
+import logging
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import httpx
+import traceback
+import json
+from typing import List, Dict
+from shutil import move
 
-# Sets up logging to track script activities and errors
+# Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 class AutomatedAnalysis:
     def __init__(self, dataset_path: str):
         """Initialize the analysis with the dataset."""
         self.dataset_path = dataset_path
-        self.aiproxy_token = os.getenv("AIPROXY_TOKEN")
+        self.aiproxy_token = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIzZjMwMDM3MjFAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.naj0MmujO6oTI-7xH3YWaJXfKFzXVJLwwQzwbMY6g8k"
 
         if not self.aiproxy_token:
-            raise ValueError("AIPROXY_TOKEN environment variable is not set.")
+            raise ValueError("AIPROXY_TOKEN is not set.")
 
         self.df = self._load_dataset()
 
@@ -64,35 +65,56 @@ class AutomatedAnalysis:
         return analysis
 
     def visualize(self, output_dir: str) -> List[str]:
-        """Generate visualizations and save them as PNG files."""
-        visualizations = []
+          """Generate visualizations and save them as PNG files directly in the output directory."""
+          visualizations = []
 
-        # Visualization 1: Missing values
-        missing_values = self.df.isnull().sum()
-        if missing_values.any():
-            plt.figure(figsize=(10, 6))
-            missing_values[missing_values > 0].plot(kind="bar")
-            plt.title("Missing Values by Column")
-            plt.ylabel("Count")
-            plt.tight_layout()
-            path = os.path.join(output_dir, "missing_values.png")
-            plt.savefig(path)
-            visualizations.append(path)
-            plt.close()
+          # Ensure the output directory exists
+          os.makedirs(output_dir, exist_ok=True)
 
-        # Visualization 2: Correlation heatmap
-        numeric_cols = self.df.select_dtypes(include=['number'])
-        if not numeric_cols.empty:
-            plt.figure(figsize=(10, 8))
-            sns.heatmap(numeric_cols.corr(), annot=True, cmap="coolwarm")
-            plt.title("Correlation Heatmap")
-            plt.tight_layout()
-            path = os.path.join(output_dir, "correlation_heatmap.png")
-            plt.savefig(path)
-            visualizations.append(path)
-            plt.close()
+          # Visualization 1: Missing values
+          try:
+                    missing_values = self.df.isnull().sum()
+                    if missing_values.any():
+                              plt.figure(figsize=(10, 6))
+                              missing_values[missing_values > 0].plot(kind="bar")
+                              plt.title("Missing Values by Column")
+                              plt.ylabel("Count")
+                              plt.tight_layout()
+                              path = os.path.join(output_dir, "missing_values.png")
+                              plt.savefig(path)
+                              plt.close()
 
-        return visualizations
+                    if os.path.exists(path):
+                              visualizations.append(path)
+                              logger.info(f"Visualization saved: {path}")
+                    else:
+                              logger.error(f"Failed to create visualization: {path}")
+          except Exception as e:
+                    logger.error(f"Error generating missing values visualization: {e}")
+                    logger.error(traceback.format_exc())
+
+          # Visualization 2: Correlation heatmap
+          try:
+                    numeric_cols = self.df.select_dtypes(include=['number'])
+                    if not numeric_cols.empty:
+                              plt.figure(figsize=(10, 8))
+                              sns.heatmap(numeric_cols.corr(), annot=True, cmap="coolwarm")
+                              plt.title("Correlation Heatmap")
+                              plt.tight_layout()
+                              path = os.path.join(output_dir, "correlation_heatmap.png")
+                              plt.savefig(path)
+                              plt.close()
+
+                    if os.path.exists(path):
+                              visualizations.append(path)
+                              logger.info(f"Visualization saved: {path}")
+                    else:
+                              logger.error(f"Failed to create visualization: {path}")
+          except Exception as e:
+                    logger.error(f"Error generating correlation heatmap: {e}")
+                    logger.error(traceback.format_exc())
+
+          return visualizations
 
     def generate_narrative(self, analysis: Dict) -> str:
         """Generate a narrative summary using the LLM."""
@@ -131,22 +153,33 @@ class AutomatedAnalysis:
             return "Error: Unable to generate narrative. Please review the dataset manually."
 
     def save_output(self, output_dir: str, narrative: str, visualizations: List[str]):
-        """Save narrative and visualizations."""
-        os.makedirs(output_dir, exist_ok=True)
+          """Save narrative and visualizations directly in the output directory."""
+          os.makedirs(output_dir, exist_ok=True)
 
-        # Save README
-        readme_path = os.path.join(output_dir, "README.md")
-        with open(readme_path, "w") as f:
-            f.write(f"# Analysis of {os.path.basename(self.dataset_path)}\n\n")
-            f.write("## Narrative Summary\n\n")
-            f.write(narrative + "\n\n")
-            f.write("## Visualizations\n\n")
-            for vis in visualizations:
-                f.write(f"![{os.path.basename(vis)}]({os.path.basename(vis)})\n\n")
+          # Save README
+          readme_path = os.path.join(output_dir, "README.md")
+          with open(readme_path, "w") as f:
+                    f.write(f"# Analysis of {os.path.basename(self.dataset_path)}\n\n")
+                    f.write("## Narrative Summary\n\n")
+                    f.write(narrative + "\n\n")
+                    f.write("## Visualizations\n\n")
+          for vis in visualizations:
+                    f.write(f"![{os.path.basename(vis)}]({os.path.basename(vis)})\n\n")
 
-        # Move PNGs to output directory
-        for vis in visualizations:
-            move(vis, output_dir)
+          # Ensure all visualization files are in the output directory
+          for vis in visualizations:
+                    src_path = os.path.abspath(vis)
+                    dest_path = os.path.join(output_dir, os.path.basename(vis))
+
+          # Check if source file exists before attempting to move
+          if os.path.exists(src_path):
+                    if os.path.exists(dest_path):
+                              logger.warning(f"Overwriting existing file: {dest_path}")
+                              os.remove(dest_path)
+                    os.rename(src_path, dest_path)  # Use os.rename for simplicity
+                    logger.info(f"Moved {src_path} to {dest_path}")
+          else:
+                    logger.error(f"Source file not found: {src_path}. Skipping move.")
 
     def run(self):
         """Execute the analysis workflow."""
